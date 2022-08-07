@@ -1,186 +1,117 @@
 package com.checkr.interviews;
 
 import java.util.*;
-import com.opencsv.CSVReader;
-import java.io.FileReader;
 import java.io.IOException;
 
 public class FundingRaised {
+    private static final int COMPANY_NAME_INDEX = 1;
+    private static final int CITY_INDEX = 4;
+    private static final int STATE_INDEX = 5;
+    private static final int ROUND_INDEX = 9;
+    private static final String COMPANY_NAME_KEY = "company_name";
+    private static final String PERMALINK_KEY = "permalink";
+    private static final String NUMBER_EMPLOYEES_KEY = "number_employees";
+    private static final String CATEGORY_KEY = "category";
+    private static final String CITY_KEY = "city";
+    private static final String STATE_KEY = "state";
+    private static final String FUNDED_DATE_KEY = "funded_date";
+    private static final String RAISED_AMOUNT_KEY = "raised_amount";
+    private static final String RAISED_CURRENCY_KEY = "raised_currency";
+    private static final String ROUND_KEY = "round";
+    private static final Map<String, Integer> filterMap = Map.of(
+            COMPANY_NAME_KEY, COMPANY_NAME_INDEX,
+            CITY_KEY, CITY_INDEX,
+            STATE_KEY, STATE_INDEX,
+            ROUND_KEY, ROUND_INDEX
+    );
+
     public static List<Map<String, String>> where(Map<String, String> options) throws IOException {
-        List<String[]> csvData = new ArrayList<String[]>();
-        CSVReader reader = new CSVReader(new FileReader("startup_funding.csv"));
-        String[] row = null;
+        List<String[]> fundingRaisedCSV = FundingRaisedCSVReader.getFundingRaisedCSV();
+        List<String[]> filterCSVList = filterCSVByOptions(options, fundingRaisedCSV);
 
-        while((row = reader.readNext()) != null) {
-            csvData.add(row);
-        }
+        return generateOutput(filterCSVList);
+    }
 
-        reader.close();
-        csvData.remove(0);
+    private static List<String[]> filterCSVByOptions(Map<String, String> options, List<String[]> fundingRaisedCSV) {
+        for(Map.Entry<String, Integer> entry : filterMap.entrySet())
+            fundingRaisedCSV = filter(options.get(entry.getKey()), fundingRaisedCSV, entry.getValue());
 
-        if(options.containsKey("company_name")) {
-            List<String[]> results = new ArrayList<String[]> ();
+        return fundingRaisedCSV;
+    }
 
-            for(int i = 0; i < csvData.size(); i++) {
-                if(csvData.get(i)[1].equals(options.get("company_name"))) {
-                    results.add(csvData.get(i));
-                }
-            }
-            csvData = results;
-        }
+    private static List<Map<String, String>> generateOutput(List<String[]> filterCSVList) {
+        List<Map<String, String>> output = new ArrayList<>();
 
-        if(options.containsKey("city")) {
-            List<String[]> results = new ArrayList<String[]> ();
-
-            for(int i = 0; i < csvData.size(); i++) {
-                if(csvData.get(i)[4].equals(options.get("city"))) {
-                    results.add(csvData.get(i));
-                }
-            }
-            csvData = results;
-        }
-
-        if(options.containsKey("state")) {
-            List<String[]> results = new ArrayList<String[]> ();
-
-            for(int i = 0; i < csvData.size(); i++) {
-                if(csvData.get(i)[5].equals(options.get("state"))) {
-                    results.add(csvData.get(i));
-                }
-            }
-            csvData = results;
-        }
-
-        if(options.containsKey("round")) {
-            List<String[]> results = new ArrayList<String[]> ();
-
-            for(int i = 0; i < csvData.size(); i++) {
-                if(csvData.get(i)[9].equals(options.get("round"))) {
-                    results.add(csvData.get(i));
-                }
-            }
-            csvData = results;
-        }
-
-        List<Map<String, String>> output = new ArrayList<Map<String, String>>();
-
-        for(int i = 0; i < csvData.size(); i++) {
-            Map<String, String> mapped = new HashMap<String, String> ();
-            mapped.put("permalink", csvData.get(i)[0]);
-            mapped.put("company_name", csvData.get(i)[1]);
-            mapped.put("number_employees", csvData.get(i)[2]);
-            mapped.put("category", csvData.get(i)[3]);
-            mapped.put("city", csvData.get(i)[4]);
-            mapped.put("state", csvData.get(i)[5]);
-            mapped.put("funded_date", csvData.get(i)[6]);
-            mapped.put("raised_amount", csvData.get(i)[7]);
-            mapped.put("raised_currency", csvData.get(i)[8]);
-            mapped.put("round", csvData.get(i)[9]);
-            output.add(mapped);
-        }
+        for (String[] csvArray: filterCSVList)
+            output.add(mapCSVData(csvArray));
 
         return output;
     }
 
-    public static Map<String, String> findBy(Map<String, String> options) throws IOException, NoSuchEntryException {
-        List<String[]> csvData = new ArrayList<String[]>();
-        CSVReader reader = new CSVReader(new FileReader("startup_funding.csv"));
-        String[] row = null;
-
-        while((row = reader.readNext()) != null) {
-            csvData.add(row);
+    private static List<String[]> filter(String optionValue, List<String[]> csvData, int csvValueIndex) {
+        if(optionValue == null) {
+            return csvData;
         }
 
-        reader.close();
-        csvData.remove(0);
-        Map<String, String> mapped = new HashMap<String, String> ();
+        List<String[]> results = new ArrayList<>();
 
-        for(int i = 0; i < csvData.size(); i++) {
-            if(options.containsKey("company_name")) {
-                if(csvData.get(i)[1].equals(options.get("company_name"))) {
-                    mapped.put("permalink", csvData.get(i)[0]);
-                    mapped.put("company_name", csvData.get(i)[1]);
-                    mapped.put("number_employees", csvData.get(i)[2]);
-                    mapped.put("category", csvData.get(i)[3]);
-                    mapped.put("city", csvData.get(i)[4]);
-                    mapped.put("state", csvData.get(i)[5]);
-                    mapped.put("funded_date", csvData.get(i)[6]);
-                    mapped.put("raised_amount", csvData.get(i)[7]);
-                    mapped.put("raised_currency", csvData.get(i)[8]);
-                    mapped.put("round", csvData.get(i)[9]);
-                } else {
-                    continue;
-                }
-            }
+        for(String[] csvArray : csvData)
+            if(csvArray[csvValueIndex].equals(optionValue))
+                results.add(csvArray);
 
-            if(options.containsKey("city")) {
-                if(csvData.get(i)[4].equals(options.get("city"))) {
-                    mapped.put("permalink", csvData.get(i)[0]);
-                    mapped.put("company_name", csvData.get(i)[1]);
-                    mapped.put("number_employees", csvData.get(i)[2]);
-                    mapped.put("category", csvData.get(i)[3]);
-                    mapped.put("city", csvData.get(i)[4]);
-                    mapped.put("state", csvData.get(i)[5]);
-                    mapped.put("funded_date", csvData.get(i)[6]);
-                    mapped.put("raised_amount", csvData.get(i)[7]);
-                    mapped.put("raised_currency", csvData.get(i)[8]);
-                    mapped.put("round", csvData.get(i)[9]);
-                } else {
-                    continue;
-                }
-            }
+        return results;
+    }
 
-            if(options.containsKey("state")) {
-                if(csvData.get(i)[5].equals(options.get("state"))) {
-                    mapped.put("permalink", csvData.get(i)[0]);
-                    mapped.put("company_name", csvData.get(i)[1]);
-                    mapped.put("number_employees", csvData.get(i)[2]);
-                    mapped.put("category", csvData.get(i)[3]);
-                    mapped.put("city", csvData.get(i)[4]);
-                    mapped.put("state", csvData.get(i)[5]);
-                    mapped.put("funded_date", csvData.get(i)[6]);
-                    mapped.put("raised_amount", csvData.get(i)[7]);
-                    mapped.put("raised_currency", csvData.get(i)[8]);
-                    mapped.put("round", csvData.get(i)[9]);
-                } else {
-                    continue;
-                }
-            }
+    public static Map<String, String> findBy(Map<String, String> options) throws IOException, NoSuchEntryException {
+        List<String[]> csvData = FundingRaisedCSVReader.getFundingRaisedCSV();
+        Map<String, String> mapped = new HashMap<>();
 
-            if(options.containsKey("round")) {
-                if(csvData.get(i)[9].equals(options.get("round"))) {
-                    mapped.put("permalink", csvData.get(i)[0]);
-                    mapped.put("company_name", csvData.get(i)[1]);
-                    mapped.put("number_employees", csvData.get(i)[2]);
-                    mapped.put("category", csvData.get(i)[3]);
-                    mapped.put("city", csvData.get(i)[4]);
-                    mapped.put("state", csvData.get(i)[5]);
-                    mapped.put("funded_date", csvData.get(i)[6]);
-                    mapped.put("raised_amount", csvData.get(i)[7]);
-                    mapped.put("raised_currency", csvData.get(i)[8]);
-                    mapped.put("round", csvData.get(i)[9]);
-                } else {
-                    continue;
-                }
-            }
+        for(String[] csvArr : csvData) {
+            mapped = extractCSVMap(options, mapped, csvArr);
 
-            return mapped;
+            if (mapped != null)
+                return mapped;
         }
 
         throw new NoSuchEntryException();
     }
 
-    public static void main(String[] args) {
-        try {
-            Map<String, String> options = new HashMap<String, String> ();
-            options.put("company_name", "Facebook");
-            options.put("round", "a");
-            System.out.print(FundingRaised.where(options).size());
-        } catch(IOException e) {
-            System.out.print(e.getMessage());
-            System.out.print("error");
+    private static Map<String, String> extractCSVMap(Map<String, String> options, Map<String, String> mapped, String[] csvArr) {
+        for(Map.Entry<String, Integer> entry : filterMap.entrySet()){
+            String optionValue = options.get(entry.getKey());
+            mapped = extractCSVArray(optionValue, csvArr, entry.getValue(), mapped);
+            if (mapped == null)
+                return null;
+        }
+
+        return mapped;
+    }
+
+    private static Map<String, String> extractCSVArray(String optionValue, String[] csvArr, int csvValueIndex, Map<String, String> mapped) {
+        if(optionValue == null) {
+            return mapped;
+        }
+        else if(csvArr[csvValueIndex].equals(optionValue)) {
+            return mapCSVData(csvArr);
+        } else {
+            return null;
         }
     }
-}
 
-class NoSuchEntryException extends Exception {}
+    private static Map<String, String> mapCSVData(String[] csvArr) {
+        Map<String, String> mapped = new HashMap<>();
+
+        mapped.put(PERMALINK_KEY, csvArr[0]);
+        mapped.put(COMPANY_NAME_KEY, csvArr[1]);
+        mapped.put(NUMBER_EMPLOYEES_KEY, csvArr[2]);
+        mapped.put(CATEGORY_KEY, csvArr[3]);
+        mapped.put(CITY_KEY, csvArr[4]);
+        mapped.put(STATE_KEY, csvArr[5]);
+        mapped.put(FUNDED_DATE_KEY, csvArr[6]);
+        mapped.put(RAISED_AMOUNT_KEY, csvArr[7]);
+        mapped.put(RAISED_CURRENCY_KEY, csvArr[8]);
+        mapped.put(ROUND_KEY, csvArr[9]);
+
+        return mapped;
+    }
+}
